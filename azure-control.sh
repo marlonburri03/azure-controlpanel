@@ -1,95 +1,98 @@
 #!/bin/bash
+# interactive menu for common read-only azure cli queries
 
-# Farben
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
-NC='\033[0m' # Kein Color
+NC='\033[0m'
 
-# Prüfe ob Azure CLI installiert ist
 if ! command -v az &> /dev/null; then
-    echo -e "${RED}Azure CLI ist nicht installiert. Bitte installiere es zuerst.${NC}"
+    echo -e "${RED}Azure CLI is not installed. Please install it first.${NC}"
+    exit 1
+fi
+
+if ! az account show &> /dev/null; then
+    echo -e "${RED}Not signed in. Run 'az login' first.${NC}"
     exit 1
 fi
 
 while true; do
     clear
     echo -e "${BLUE}========= AZURE CLI CONTROL PANEL =========${NC}"
-    echo -e "${YELLOW} 1)${NC} Aktive Subscription anzeigen"
-    echo -e "${YELLOW} 2)${NC} Alle Subscriptions anzeigen"
-    echo -e "${YELLOW} 3)${NC} Azure Regionen anzeigen"
-    echo -e "${YELLOW} 4)${NC} Alle Resource Groups anzeigen"
-    echo -e "${YELLOW} 5)${NC} Details einer Resource Group anzeigen"
-    echo -e "${YELLOW} 6)${NC} Ressourcen in einer Resource Group anzeigen"
-    echo -e "${YELLOW} 7)${NC} Alle Ressourcen anzeigen"
-    echo -e "${YELLOW} 8)${NC} Rollen-Zuweisungen anzeigen"
-    echo -e "${YELLOW} 9)${NC} Tags einer Ressource anzeigen"
-    echo -e "${YELLOW}10)${NC} Ressourcen exportieren (JSON)"
-    echo -e "${YELLOW}11)${NC} Beenden"
-    echo -e "${YELLOW}12)${NC} Alle Storage Accounts anzeigen"
+    echo -e "${YELLOW} 1)${NC} Show active subscription"
+    echo -e "${YELLOW} 2)${NC} List all subscriptions"
+    echo -e "${YELLOW} 3)${NC} List Azure regions"
+    echo -e "${YELLOW} 4)${NC} List resource groups"
+    echo -e "${YELLOW} 5)${NC} Show resource group details"
+    echo -e "${YELLOW} 6)${NC} List resources in a resource group"
+    echo -e "${YELLOW} 7)${NC} List all resources"
+    echo -e "${YELLOW} 8)${NC} List role assignments"
+    echo -e "${YELLOW} 9)${NC} Show tags of a resource"
+    echo -e "${YELLOW}10)${NC} Export all resources (JSON)"
+    echo -e "${YELLOW}11)${NC} List storage accounts"
+    echo -e "${YELLOW} 0)${NC} Exit"
     echo -e "${BLUE}===========================================${NC}"
-    read -p "Option wählen [1-12]: " opt
+    read -r -p "Choose an option [0-11]: " opt
 
     case $opt in
         1)
-            echo -e "${CYAN}Aktive Subscription:${NC}"
+            echo -e "${CYAN}Active subscription:${NC}"
             az account show -o table
             ;;
         2)
-            echo -e "${CYAN}Alle Subscriptions:${NC}"
+            echo -e "${CYAN}All subscriptions:${NC}"
             az account list -o table
             ;;
         3)
-            echo -e "${CYAN}Verfügbare Azure Regionen:${NC}"
+            echo -e "${CYAN}Available Azure regions:${NC}"
             az account list-locations -o table
             ;;
         4)
-            echo -e "${CYAN}Alle Resource Groups:${NC}"
+            echo -e "${CYAN}All resource groups:${NC}"
             az group list -o table
             ;;
         5)
-            read -p "Resource Group Name: " rgname
-            echo -e "${CYAN}Details der Resource Group ${rgname}:${NC}"
+            read -r -p "Resource group name: " rgname
+            echo -e "${CYAN}Details of resource group ${rgname}:${NC}"
             az group show --name "$rgname" -o table
             ;;
         6)
-            read -p "Resource Group Name: " rgname
-            echo -e "${CYAN}Ressourcen in ${rgname}:${NC}"
+            read -r -p "Resource group name: " rgname
+            echo -e "${CYAN}Resources in ${rgname}:${NC}"
             az resource list --resource-group "$rgname" -o table
             ;;
         7)
-            echo -e "${CYAN}Alle Ressourcen:${NC}"
+            echo -e "${CYAN}All resources:${NC}"
             az resource list -o table
             ;;
         8)
-            echo -e "${CYAN}Rollen-Zuweisungen:${NC}"
-            az role assignment list -o table
+            echo -e "${CYAN}Role assignments:${NC}"
+            az role assignment list --all -o table
             ;;
         9)
-            read -p "Ressourcen-ID oder Name (z.B. VM, RG): " resname
-            echo -e "${CYAN}Tags der Ressource:${NC}"
-            az resource show --name "$resname" --query tags -o json
+            read -r -p "Resource ID (/subscriptions/...): " resid
+            echo -e "${CYAN}Tags:${NC}"
+            az resource show --ids "$resid" --query tags -o json
             ;;
         10)
-            echo -e "${CYAN}Ressourcen werden exportiert in 'resources.json'...${NC}"
-            az resource list -o json > resources.json
-            echo -e "${GREEN}Export erfolgreich.${NC}"
+            echo -e "${CYAN}Exporting resources to 'resources.json'...${NC}"
+            az resource list -o json > resources.json && echo -e "${GREEN}Export complete.${NC}"
             ;;
         11)
-            echo -e "${GREEN}Beende...${NC}"
-            exit 0
-            ;;
-        12)
-            echo -e "${CYAN}Alle Storage Accounts:${NC}"
+            echo -e "${CYAN}All storage accounts:${NC}"
             az storage account list --query "[].{Name:name, ResourceGroup:resourceGroup, Location:primaryLocation}" -o table
             ;;
+        0)
+            echo -e "${GREEN}Bye.${NC}"
+            exit 0
+            ;;
         *)
-            echo -e "${RED}Ungültige Eingabe!${NC}"
+            echo -e "${RED}Invalid option.${NC}"
             ;;
     esac
 
     echo ""
-    read -p "Drücke [Enter] zum Fortfahren..."
+    read -r -p "Press [Enter] to continue..."
 done
